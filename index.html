@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>ಸೇವಾದಾರರು ಪಟ್ಟಿ</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       font-family: "Noto Sans Kannada", sans-serif;
@@ -20,6 +21,8 @@
       border: none;
       border-radius: 10px;
       cursor: pointer;
+      width: 90%;
+      max-width: 300px;
     }
     button:hover {
       background-color: #1d4ed8;
@@ -29,10 +32,18 @@
       margin: 15px auto;
       padding: 15px;
       border-radius: 12px;
+      width: 90%;
       max-width: 600px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.15);
       font-size: 18px;
       line-height: 1.5;
+      text-align: left;
+    }
+    @media (max-width: 480px) {
+      .person {
+        font-size: 16px;
+        padding: 10px;
+      }
     }
   </style>
 </head>
@@ -42,10 +53,10 @@
   <button onclick="showAll()">ಈ ತಿಂಗಳ ಸೇವಾದಾರರು</button>
   <div id="output"></div>
 
-  <script>
-    let allData = [];
+ <script>
+  let allData = [];
 
-    // Load Excel from same folder
+  document.addEventListener("DOMContentLoaded", function () {
     fetch("cleaned_sevadars.xlsx")
       .then(res => res.arrayBuffer())
       .then(data => {
@@ -68,56 +79,63 @@
         }
         document.getElementById("output").innerText = "ಫೈಲ್ ಲೋಡ್ ಆಗಿದೆ. ಬಟನ್ ಒತ್ತಿ.";
       });
+  });
 
-    function parseExcelDate(value) {
-      if (typeof value === "number") {
-        const date = new Date(1899, 11, 30);
-        date.setDate(date.getDate() + value);
-        return date;
-      } else if (typeof value === "string") {
-        const parts = value.split(/[-/]/);
-        if (parts.length === 3) {
-          const [day, month, year] = parts.map(p => parseInt(p));
-          if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-            return new Date(year, month - 1, day);
-          }
+  function parseExcelDate(value) {
+    if (typeof value === "number") {
+      const date = new Date(1899, 11, 30);
+      date.setDate(date.getDate() + value);
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate()); // clear time
+    } else if (typeof value === "string") {
+      const parts = value.split(/[-/]/);
+      if (parts.length === 3) {
+        const [day, month, year] = parts.map(p => parseInt(p));
+        if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+          return new Date(year, month - 1, day);
         }
       }
-      return null;
     }
+    return null;
+  }
 
-    function showToday() {
-      const today = new Date().toDateString();
-      const filtered = allData.filter(p => p.date.toDateString() === today);
-      display(filtered, "ಇಂದಿನ");
-    }
+  function showToday() {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // clear time
+    const filtered = allData.filter(p => 
+      p.date.getFullYear() === today.getFullYear() &&
+      p.date.getMonth() === today.getMonth() &&
+      p.date.getDate() === today.getDate()
+    );
+    display(filtered, "ಇಂದಿನ");
+  }
 
-    function showAll() {
-      const now = new Date();
-      const filtered = allData.filter(p =>
-        p.date.getMonth() === now.getMonth() &&
-        p.date.getFullYear() === now.getFullYear()
-      );
-      display(filtered, "ಈ ತಿಂಗಳ");
-    }
+  function showAll() {
+    const now = new Date();
+    const filtered = allData.filter(p =>
+      p.date.getMonth() === now.getMonth() &&
+      p.date.getFullYear() === now.getFullYear()
+    );
+    display(filtered, "ಈ ತಿಂಗಳ");
+  }
 
-    function display(list, title) {
-      const out = document.getElementById("output");
-      if (list.length === 0) {
-        out.innerHTML = `<p>${title} ಸೇವಾದಾರರು ಲಭ್ಯವಿಲ್ಲ.</p>`;
-        return;
-      }
-      out.innerHTML = `<h3>${title} ಸೇವಾದಾರರು:</h3>` +
-        list.map(p => `
-          <div class="person">
-            <strong>ಹೆಸರು:</strong> ${p.name}<br>
-            <strong>ದಿನಾಂಕ:</strong> ${p.date.toLocaleDateString()}<br>
-            <strong>ತಿಂಗಳು:</strong> ${p.month || '-'}<br>
-            <strong>ರಾಶಿ:</strong> ${p.rashi || '-'}<br>
-            <strong>ನಕ್ಷತ್ರ:</strong> ${p.nakshatra || '-'}
-          </div>
-        `).join('');
+  function display(list, title) {
+    const out = document.getElementById("output");
+    if (list.length === 0) {
+      out.innerHTML = `<p>${title} ಸೇವಾದಾರರು ಲಭ್ಯವಿಲ್ಲ.</p>`;
+      return;
     }
-  </script>
+    out.innerHTML = `<h3>${title} ಸೇವಾದಾರರು:</h3>` +
+      list.map(p => `
+        <div class="person">
+          <strong>ಹೆಸರು:</strong> ${p.name}<br>
+          <strong>ದಿನಾಂಕ:</strong> ${p.date.toLocaleDateString()}<br>
+          <strong>ತಿಂಗಳು:</strong> ${p.month || '-'}<br>
+          <strong>ರಾಶಿ:</strong> ${p.rashi || '-'}<br>
+          <strong>ನಕ್ಷತ್ರ:</strong> ${p.nakshatra || '-'}
+        </div>
+      `).join('');
+  }
+</script>
+
 </body>
 </html>
