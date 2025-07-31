@@ -1,143 +1,128 @@
 <!DOCTYPE html>
 <html lang="kn">
 <head>
-  <meta charset="UTF-8">
-  <title>ಸೇವಾದಾರರು ಪಟ್ಟಿ</title>
+  <meta charset="UTF-8" />
+  <title>ಪೂಜೆ ಸೇವಾದಾರರು</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       font-family: "Noto Sans Kannada", sans-serif;
-      background-color: #f3f4f6;
       padding: 20px;
-      text-align: center;
+      background-color: #f9f9f9;
     }
     button {
+      font-size: 16px;
       margin: 10px;
-      padding: 12px 20px;
-      font-size: 18px;
-      background-color: #2563eb;
-      color: white;
+      padding: 10px 20px;
       border: none;
-      border-radius: 10px;
+      background-color: #5a189a;
+      color: white;
+      border-radius: 8px;
       cursor: pointer;
-      width: 90%;
-      max-width: 300px;
     }
     button:hover {
-      background-color: #1d4ed8;
+      background-color: #7b2cbf;
+    }
+    #output {
+      margin-top: 20px;
     }
     .person {
       background: white;
-      margin: 15px auto;
+      border: 1px solid #ccc;
       padding: 15px;
-      border-radius: 12px;
-      width: 90%;
-      max-width: 600px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      font-size: 18px;
-      line-height: 1.5;
-      text-align: left;
-    }
-    @media (max-width: 480px) {
-      .person {
-        font-size: 16px;
-        padding: 10px;
-      }
+      margin-bottom: 10px;
+      border-radius: 8px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
     }
   </style>
 </head>
 <body>
-  <h2>ಸೇವಾದಾರರ ವಿವರ</h2>
-  <button onclick="showToday()">ಇಂದಿನ ಸೇವಾದಾರರು</button>
+  <h2>ಪೂಜೆ ಸೇವಾದಾರರು</h2>
+  <input type="file" id="fileInput" accept=".xlsx" />
+  <br/>
+  <button onclick="showToday()">ಇಂದು ಪೂಜೆಗೆ</button>
   <button onclick="showAll()">ಈ ತಿಂಗಳ ಸೇವಾದಾರರು</button>
+
   <div id="output"></div>
 
- <script>
-  let allData = [];
+  <script>
+    let allData = [];
 
-  document.addEventListener("DOMContentLoaded", function () {
-    fetch("cleaned_sevadars.xlsx")
-      .then(res => res.arrayBuffer())
-      .then(data => {
-        const workbook = XLSX.read(data, { type: 'array' });
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, {type: 'array'});
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        const rows = XLSX.utils.sheet_to_json(sheet, {header: 1, defval: ""});
 
-        for (let i = 1; i < json.length; i++) {
-          const row = json[i];
-          const name = row[0];        // A
-          const dateRaw = row[1];     // B
-          const month = row[2];       // C
-          const rashi = row[3];       // D
-          const nakshatra = row[4];   // E
-          const gotra = row[5];       // F ← NEW
+        allData = [];
 
-          const date = parseExcelDate(dateRaw);
-          if (name && date) {
-            allData.push({ name, date, month, rashi, nakshatra, gotra });
+        for (let row of rows) {
+          const name = row[3]?.toString().trim();        // column D
+          const dateStr = row[8]?.toString().trim();     // column I
+          const month = row[1]?.toString().trim();       // column B
+          let rashi = row[10]?.toString().trim();        // column L
+          let nakshatra = row[4]?.toString().trim();     // column E
+          let gotra = row[5]?.toString().trim();         // column F (sometimes all 3 in one)
+
+          // If all details are in one cell (F), split them
+          if (gotra && gotra.includes('\n')) {
+            const parts = gotra.split('\n').map(p => p.trim()).filter(Boolean);
+            [gotra, nakshatra, rashi] = parts;
+          }
+
+          if (name && dateStr) {
+            const [day, monthNum, year] = dateStr.split(/[-/]/).map(Number);
+            if (!isNaN(day) && !isNaN(monthNum) && !isNaN(year)) {
+              const date = new Date(year, monthNum - 1, day);
+              allData.push({ name, gotra, nakshatra, rashi, date, month });
+            }
           }
         }
-        document.getElementById("output").innerText = "ಫೈಲ್ ಲೋಡ್ ಆಗಿದೆ. ಬಟನ್ ಒತ್ತಿ.";
-      });
-  });
 
-  function parseExcelDate(value) {
-    if (typeof value === "number") {
-      const date = new Date(1899, 11, 30);
-      date.setDate(date.getDate() + value);
-      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    } else if (typeof value === "string") {
-      const parts = value.split(/[-/]/);
-      if (parts.length === 3) {
-        const [day, month, year] = parts.map(p => parseInt(p));
-        if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-          return new Date(year, month - 1, day);
-        }
+        alert("ದಾಖಲೆಗಳನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಓದಲಾಗಿದೆ!");
+      };
+
+      reader.readAsArrayBuffer(file);
+    });
+
+    function showToday() {
+      const today = new Date();
+      const list = allData.filter(p =>
+        p.date.getDate() === today.getDate() &&
+        p.date.getMonth() === today.getMonth() &&
+        p.date.getFullYear() === today.getFullYear()
+      );
+      display(list, "ಇಂದಿನ");
+    }
+
+    function showAll() {
+      const month = new Date().getMonth();
+      const list = allData.filter(p => p.date.getMonth() === month);
+      display(list, "ಈ ತಿಂಗಳ");
+    }
+
+    function display(list, title) {
+      const out = document.getElementById("output");
+      if (list.length === 0) {
+        out.innerHTML = `<p>${title} ಸೇವಾದಾರರು ಲಭ್ಯವಿಲ್ಲ.</p>`;
+        return;
       }
+      out.innerHTML = `<h3>${title} ಸೇವಾದಾರರು:</h3>` +
+        list.map(p => `
+          <div class="person">
+            <strong>ಹೆಸರು:</strong> ${p.name}<br>
+            <strong>ಗೋತ್ರ:</strong> ${p.gotra || '-'}<br>
+            <strong>ನಕ್ಷತ್ರ:</strong> ${p.nakshatra || '-'}<br>
+            <strong>ರಾಶಿ:</strong> ${p.rashi || '-'}<br>
+            <strong>ದಿನಾಂಕ:</strong> ${p.date.toLocaleDateString('kn-IN')}<br>
+            <strong>ತಿಂಗಳು:</strong> ${p.month || '-'}
+          </div>
+        `).join('');
     }
-    return null;
-  }
-
-  function showToday() {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const filtered = allData.filter(p => 
-      p.date.getFullYear() === today.getFullYear() &&
-      p.date.getMonth() === today.getMonth() &&
-      p.date.getDate() === today.getDate()
-    );
-    display(filtered, "ಇಂದಿನ");
-  }
-
-  function showAll() {
-    const now = new Date();
-    const filtered = allData.filter(p =>
-      p.date.getMonth() === now.getMonth() &&
-      p.date.getFullYear() === now.getFullYear()
-    );
-    display(filtered, "ಈ ತಿಂಗಳ");
-  }
-
-  function display(list, title) {
-    const out = document.getElementById("output");
-    if (list.length === 0) {
-      out.innerHTML = `<p>${title} ಸೇವಾದಾರರು ಲಭ್ಯವಿಲ್ಲ.</p>`;
-      return;
-    }
-    out.innerHTML = `<h3>${title} ಸೇವಾದಾರರು:</h3>` +
-      list.map(p => `
-        <div class="person">
-          <strong>ಹೆಸರು:</strong> ${p.name}<br>
-          <strong>ದಿನಾಂಕ:</strong> ${p.date.toLocaleDateString()}<br>
-          <strong>ತಿಂಗಳು:</strong> ${p.month || '-'}<br>
-          <strong>ರಾಶಿ:</strong> ${p.rashi || '-'}<br>
-          <strong>ನಕ್ಷತ್ರ:</strong> ${p.nakshatra || '-'}<br>
-          <strong>ಗೋತ್ರ:</strong> ${p.gotra || '-'}
-        </div>
-      `).join('');
-  }
-</script>
-
+  </script>
 </body>
 </html>
