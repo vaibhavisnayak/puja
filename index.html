@@ -66,15 +66,16 @@
 
         for (let i = 1; i < json.length; i++) {
           const row = json[i];
-          const name = row[0];      // A
-          const dateRaw = row[1];   // B - Date
-          const month = row[2];     // C - Month
-          const rashi = row[3];     // D
-          const nakshatra = row[4]; // E
+          const name = row[0];        // A
+          const dateRaw = row[1];     // B
+          const month = row[2];       // C
+          const rashi = row[3];       // D
+          const nakshatra = row[4];   // E
+          const gotra = row[5];       // F ← NEW
 
           const date = parseExcelDate(dateRaw);
           if (name && date) {
-            allData.push({ name, date, month, rashi, nakshatra });
+            allData.push({ name, date, month, rashi, nakshatra, gotra });
           }
         }
         document.getElementById("output").innerText = "ಫೈಲ್ ಲೋಡ್ ಆಗಿದೆ. ಬಟನ್ ಒತ್ತಿ.";
@@ -85,7 +86,7 @@
     if (typeof value === "number") {
       const date = new Date(1899, 11, 30);
       date.setDate(date.getDate() + value);
-      return new Date(date.getFullYear(), date.getMonth(), date.getDate()); // clear time
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
     } else if (typeof value === "string") {
       const parts = value.split(/[-/]/);
       if (parts.length === 3) {
@@ -100,7 +101,7 @@
 
   function showToday() {
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // clear time
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const filtered = allData.filter(p => 
       p.date.getFullYear() === today.getFullYear() &&
       p.date.getMonth() === today.getMonth() &&
@@ -131,7 +132,8 @@
           <strong>ದಿನಾಂಕ:</strong> ${p.date.toLocaleDateString()}<br>
           <strong>ತಿಂಗಳು:</strong> ${p.month || '-'}<br>
           <strong>ರಾಶಿ:</strong> ${p.rashi || '-'}<br>
-          <strong>ನಕ್ಷತ್ರ:</strong> ${p.nakshatra || '-'}
+          <strong>ನಕ್ಷತ್ರ:</strong> ${p.nakshatra || '-'}<br>
+          <strong>ಗೋತ್ರ:</strong> ${p.gotra || '-'}
         </div>
       `).join('');
   }
